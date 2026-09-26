@@ -28,15 +28,29 @@
             overflow-x: hidden;
         }
 
-        /* 頂部標題 */
         .header {
             width: 100%;
             padding: 20px 15px 10px 15px;
             text-align: center;
             box-sizing: border-box;
+            position: relative;
         }
         .header h2 { margin: 0; font-size: 22px; color: var(--primary); text-shadow: 0 0 10px var(--primary-glow); }
         .header p { margin: 5px 0 0 0; font-size: 13px; color: var(--text-muted); }
+        
+        /* 設定按鈕 (齒輪) */
+        .setting-btn {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: transparent;
+            border: none;
+            font-size: 22px;
+            cursor: pointer;
+            opacity: 0.8;
+            transition: transform 0.2s;
+        }
+        .setting-btn:active { transform: rotate(45deg); }
 
         .container {
             width: 100%;
@@ -48,7 +62,7 @@
             flex-direction: column;
         }
 
-        /* 水位球體動畫 (核心視覺) */
+        /* 水位球體動畫 */
         .water-tank-wrapper {
             display: flex;
             justify-content: center;
@@ -74,28 +88,27 @@
             bottom: 0;
             left: 0;
             width: 100%;
-            height: 100%; /* JS 控制高度 */
+            height: 100%; 
             background: linear-gradient(180deg, #38bdf8 0%, #0284c7 100%);
-            transition: height 1s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            transition: height 1s cubic-bezier(0.175, 0.885, 0.32, 1.275), background 0.5s;
             z-index: 1;
         }
 
-        /* 波浪效果 */
         .water::before, .water::after {
             content: '';
             position: absolute;
             width: 400px;
             height: 400px;
-            top: -380px; /* 控制波浪高度 */
+            top: -380px; 
             left: 50%;
             margin-left: -200px;
-            background: var(--bg-dark); /* 用背景色遮擋製造波浪 */
+            background: var(--bg-dark); 
             border-radius: 40%;
             animation: spin 6s linear infinite;
             z-index: 2;
         }
         .water::after {
-            background: rgba(15, 23, 42, 0.6); /* 半透明製造雙層波浪 */
+            background: rgba(15, 23, 42, 0.6); 
             border-radius: 45%;
             animation: spin 8s linear infinite;
             z-index: 3;
@@ -103,7 +116,6 @@
 
         @keyframes spin { 100% { transform: rotate(360deg); } }
 
-        /* 水球內的文字 */
         .tank-text {
             position: absolute;
             z-index: 10;
@@ -157,31 +169,42 @@
             flex: 1; overflow-y: auto; max-height: 250px;
             display: flex; flex-direction: column; gap: 10px;
         }
-        /* 隱藏捲軸 */
         .history-list::-webkit-scrollbar { display: none; }
         
         .history-item {
             background: rgba(255,255,255,0.03); padding: 12px 15px;
-            border-radius: 8px; display: flex; justify-content: space-between; align-items: center;
+            border-radius: 8px; display: flex; align-items: center; gap: 10px;
         }
-        .history-info { display: flex; flex-direction: column; }
+        .history-info { flex: 1; display: flex; flex-direction: column; }
         .history-desc { font-size: 15px; font-weight: bold; color: #e2e8f0; }
         .history-time { font-size: 11px; color: #64748b; margin-top: 3px; }
         .history-amounts { text-align: right; }
         .history-foreign { font-size: 16px; font-weight: bold; color: #fff; }
         .history-hkd { font-size: 12px; color: var(--danger); margin-top: 2px; }
+        
+        /* 刪除按鈕 */
+        .delete-btn {
+            background: rgba(239, 68, 68, 0.15);
+            border: none;
+            border-radius: 6px;
+            color: var(--danger);
+            font-size: 14px;
+            padding: 8px 10px;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        .delete-btn:active { background: rgba(239, 68, 68, 0.4); }
 
-        /* 設定視圖 (一開始) */
         #setupView { display: none; width: 100%; max-width: 400px; margin: auto; padding: 20px;}
         #mainView { display: none; width: 100%; flex: 1; flex-direction: column;}
     </style>
 </head>
 <body>
 
-    <!-- 1. 初始設定介面 -->
+    <!-- 1. 初始設定 / 修改設定介面 -->
     <div id="setupView">
         <div class="header">
-            <h2>🛫 新建旅行預算</h2>
+            <h2 id="setupTitle">🛫 新建旅行預算</h2>
             <p>設定你的旅行預算與匯率，防止超支</p>
         </div>
         <div class="input-card" style="margin-top: 20px;">
@@ -197,13 +220,14 @@
                 <label>匯率 (1 外幣 = ? HKD) <br>※例如 1 日圓 = 0.052 港幣，請輸入 0.052</label>
                 <input type="number" id="setupRate" placeholder="例如：0.052" step="0.0001">
             </div>
-            <button class="btn btn-primary" style="margin-top: 10px;" onclick="saveSetup()">出發！🚀</button>
+            <button class="btn btn-primary" style="margin-top: 10px;" onclick="saveSetup()">儲存並出發！🚀</button>
         </div>
     </div>
 
     <!-- 2. 主要記帳介面 -->
     <div id="mainView">
         <div class="header">
+            <button class="setting-btn" onclick="editSetup()" title="修改設定">⚙️</button>
             <h2 id="tripTitle">旅行記帳本</h2>
             <p>匯率: 1 <span id="displayCurr">JPY</span> = <span id="displayRate">0.052</span> HKD</p>
         </div>
@@ -244,7 +268,7 @@
                 </div>
             </div>
 
-            <button class="btn btn-danger" onclick="resetTrip()">🛑 結束旅行 (清除數據)</button>
+            <button class="btn btn-danger" onclick="resetTrip()">🛑 結束旅行 (永久刪除數據)</button>
         </div>
     </div>
 
@@ -259,7 +283,6 @@
     };
 
     window.onload = () => {
-        // 檢查 LocalStorage 係咪已經有記錄
         const savedData = localStorage.getItem('myTripBudget');
         if (savedData) {
             tripData = JSON.parse(savedData);
@@ -270,7 +293,18 @@
         }
     };
 
-    // 儲存設定
+    // 進入修改設定介面
+    function editSetup() {
+        document.getElementById('setupTitle').innerText = "⚙️ 修改旅行設定";
+        document.getElementById('setupBudget').value = tripData.budgetHKD;
+        document.getElementById('setupCurrency').value = tripData.currency;
+        document.getElementById('setupRate').value = tripData.rate;
+        
+        document.getElementById('setupView').style.display = 'block';
+        document.getElementById('mainView').style.display = 'none';
+    }
+
+    // 儲存設定 (新建 / 修改)
     function saveSetup() {
         const budget = parseFloat(document.getElementById('setupBudget').value);
         const currency = document.getElementById('setupCurrency').value.toUpperCase().trim();
@@ -281,13 +315,17 @@
             return;
         }
 
-        tripData = {
-            budgetHKD: budget,
-            currency: currency,
-            rate: rate,
-            spentHKD: 0,
-            expenses: []
-        };
+        // 更新基礎資料，保留 expenses 陣列
+        tripData.budgetHKD = budget;
+        tripData.currency = currency;
+        tripData.rate = rate;
+
+        // 重新計算總花費 (以防用戶修改咗匯率)
+        tripData.spentHKD = 0;
+        tripData.expenses.forEach(item => {
+            item.hkd = item.foreign * rate; // 按新匯率重新計算港幣
+            tripData.spentHKD += item.hkd;
+        });
 
         saveToLocal();
         showMainView();
@@ -318,10 +356,8 @@
 
         if (!desc) desc = "未命名消費";
 
-        // 計算港紙
         const hkdAmount = foreignAmount * tripData.rate;
 
-        // 建立紀錄
         const newExpense = {
             id: Date.now(),
             desc: desc,
@@ -330,13 +366,11 @@
             time: new Date().getTime()
         };
 
-        // 更新總花費並加入清單 (最新的排最前)
         tripData.spentHKD += hkdAmount;
         tripData.expenses.unshift(newExpense);
 
         saveToLocal();
         
-        // 清空輸入框
         document.getElementById('expenseDesc').value = "";
         document.getElementById('expenseAmount').value = "";
 
@@ -344,26 +378,39 @@
         renderHistory();
     }
 
+    // 單筆刪除功能
+    function deleteExpense(id) {
+        if(confirm("確定要刪除呢筆消費？")) {
+            // 搵返要刪除嗰一筆
+            const index = tripData.expenses.findIndex(item => item.id === id);
+            
+            if (index !== -1) {
+                // 將用咗嘅錢扣返出嚟 (回血)
+                tripData.spentHKD -= tripData.expenses[index].hkd;
+                
+                // 喺陣列入面移除
+                tripData.expenses.splice(index, 1);
+                
+                saveToLocal();
+                updateVisuals();
+                renderHistory();
+            }
+        }
+    }
+
     // 更新水球與數字
     function updateVisuals() {
         let remaining = tripData.budgetHKD - tripData.spentHKD;
         let percentage = (remaining / tripData.budgetHKD) * 100;
         
-        // 防止負數
         if (remaining < 0) remaining = 0;
         if (percentage < 0) percentage = 0;
 
         document.getElementById('remainingHKD').innerText = remaining.toFixed(1);
-        document.getElementById('budgetPercentage').innerText = `剩餘 ${percentage.toFixed(1)}%`;
-
-        // 更新水球高度 (CSS top 控制波浪遮罩的位置)
-        // 水位 100% 時，遮罩要在很上面 (top: -380px)
-        // 水位 0% 時，遮罩要壓到底部 (top: -200px 左右)
-        // 使用 CSS height 更簡單：直接改變 .water 的 height
+        
         const waterElement = document.getElementById('waterLevel');
         waterElement.style.height = `${percentage}%`;
 
-        // 警告顏色：低過 20% 變紅色
         if (percentage <= 20) {
             waterElement.style.background = "linear-gradient(180deg, #ef4444 0%, #991b1b 100%)";
             document.getElementById('budgetPercentage').style.color = "#ef4444";
@@ -371,6 +418,7 @@
         } else {
             waterElement.style.background = "linear-gradient(180deg, #38bdf8 0%, #0284c7 100%)";
             document.getElementById('budgetPercentage').style.color = "rgba(255,255,255,0.8)";
+            document.getElementById('budgetPercentage').innerText = `剩餘 ${percentage.toFixed(1)}%`;
         }
     }
 
@@ -399,20 +447,21 @@
                     <div class="history-foreign">- ${item.foreign} ${tripData.currency}</div>
                     <div class="history-hkd">≈ HK$ ${item.hkd.toFixed(1)}</div>
                 </div>
+                <button class="delete-btn" onclick="deleteExpense(${item.id})" title="刪除">❌</button>
             `;
             listContainer.appendChild(div);
         });
     }
 
-    // 儲存至 LocalStorage
     function saveToLocal() {
         localStorage.setItem('myTripBudget', JSON.stringify(tripData));
     }
 
-    // 結束旅行並清除數據
+    // 結束旅行 (永久刪除)
     function resetTrip() {
-        if(confirm("確定要結束今次旅行？這將會永久刪除所有記帳紀錄。")) {
+        if(confirm("🚨 警告：這將會永久刪除所有記帳紀錄。確定要結束今次旅行？")) {
             localStorage.removeItem('myTripBudget');
+            document.getElementById('setupTitle').innerText = "🛫 新建旅行預算";
             document.getElementById('setupBudget').value = "";
             document.getElementById('setupRate').value = "";
             document.getElementById('setupView').style.display = 'block';
